@@ -1,8 +1,15 @@
-<p id="notice"><%= notice %></p>
-
+<!--<p id="notice"><%= notice %></p>-->
+<% if !@view %>
+<div>
+<%= link_to '編集', edit_post_path(@post) %> |
+<%= link_to '戻る', posts_path %><br/><br/>
+</div>
+<div>
+↓↓↓ このURLをツイッターとかにはってね ↓↓↓<br/>
+<%= link_to view_url, view_path %>
+</div>
+<% end %>
 <h1><%= @post.title %></h1>
+<h4 style="text-align:right"><%= @post.author %></h4>
 <%= @post.content %>
 
-
-<%= link_to 'Edit', edit_post_path(@post) %> |
-<%= link_to 'Back', posts_path %>

@@ -1,5 +1,9 @@
 # README
 
+```
+RAILS_ENV=production RAILS_SERVE_STATIC_FILES=1 bundle exec puma --port 3333 -d
+```
+
 This README would normally document whatever steps are necessary to get the
 application up and running.
 
