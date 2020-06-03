@@ -160,6 +160,7 @@ GEM
     selenium-webdriver (3.142.7)
       childprocess (>= 0.5, < 4.0)
       rubyzip (>= 1.2.2)
+    simple_oauth (0.3.1)
     spring (2.1.0)
     spring-watcher-listen (2.0.1)
       listen (>= 2.7, < 4.0)
@@ -178,6 +179,8 @@ GEM
     turbolinks (5.2.1)
       turbolinks-source (~> 5.2)
     turbolinks-source (5.2.0)
+    twitter_api (0.1.10)
+      simple_oauth
     tzinfo (1.2.7)
       thread_safe (~> 0.1)
     web-console (4.0.2)
@@ -219,6 +222,7 @@ DEPENDENCIES
   spring-watcher-listen (~> 2.0.0)
   sqlite3 (~> 1.4)
   turbolinks (~> 5)
+  twitter_api
   tzinfo-data
   web-console (>= 3.3.0)
   webdrivers

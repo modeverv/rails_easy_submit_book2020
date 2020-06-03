@@ -1,0 +1,11 @@
+<h1>Twitterに画像をぶん投げたよ</h1>
+<div>
+<%= link_to '戻る', posts_path %><br/><br/>
+</div>
+<h2>
+<a href="https://twitter.com/intent/tweet?text=<%= @post.title%> - <%= @post.author %> <%= @media_urls[1] %>"
+target="_blank">Twitterに撒く</a>
+</h2>
+<div style="margin-top:20px">
+<%= image_tag(@media_urls[0], options = {}) %>
+</div>

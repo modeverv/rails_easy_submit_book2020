@@ -1,5 +1,24 @@
+# frozen_string_literal: true
+
 class PostsController < ApplicationController
-  before_action :set_post, only: [:show, :edit, :update, :destroy, :view]
+  before_action :set_post, only: %i[show edit update destroy view shot publish]
+
+  $driver = nil
+
+  def _get_driver
+    return $driver unless $driver.blank?
+
+    puts 'generate google instance'
+    Selenium::WebDriver::Chrome::Service.driver_path = ENV.fetch('DRIVER_PATH') { '/usr/local/bin/chromedriver' }
+    options = Selenium::WebDriver::Chrome::Options.new
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    # options.add_argument('--disable-gpu')
+    options.add_argument('--hide-scrollbars')
+    options.binary = ENV.fetch('CHROME_BIN') { '/usr/bin/google-chrome' }
+    $driver = Selenium::WebDriver.for :chrome, options: options
+    $driver
+  end
 
   # GET /posts
   # GET /posts.json
@@ -9,12 +28,69 @@ class PostsController < ApplicationController
 
   # GET /posts/1
   # GET /posts/1.json
-  def show
+  def show; end
+
+  def publish
+    temp_file = _get_shot
+    @media_urls = _send_to_twitter temp_file
+  end
+
+  def _send_to_twitter(temp_file)
+    t = TwitterAPI::Client.new(
+      consumer_key: ENV.fetch('CONSUMER_KEY'),
+      consumer_secret: ENV.fetch('CONSUMER_SECRET'),
+      token: ENV.fetch('TOKEN'),
+      token_secret: ENV.fetch('TOKEN_SECRET')
+    )
+    image = File.open(temp_file.path, 'rb').read
+    res = t.media_upload('media' => image)
+    media_id = JSON.parse(res.body)['media_id_string']
+    res = t.statuses_update(
+      'status' => '',
+      'media_ids' => media_id
+    )
+    status_id = JSON.parse(res.body)['id_str']
+    res = t.statuses_show_id('id' => status_id)
+    tweet = JSON.parse(res.body)
+    url = ''
+    display_url = ''
+    tweet['extended_entities']['media'].each do |media|
+      url = media['media_url']
+      display_url = media['display_url']
+      break
+    end
+    [url, display_url]
   end
 
   def view
     @view = true
     render 'show'
+  end
+
+  def _get_shot
+    driver = _get_driver
+    driver.get view_url(@post)
+    width = driver.execute_script('return document.body.scrollWidth')
+    height = driver.execute_script('return document.body.scrollHeight + 300')
+    driver.manage.window.resize_to(width, height)
+    driver.manage.window.maximize
+    sleep 5 # required waiting for page loading
+    file = Tempfile.new(["template_#{@post.id}", '.png'], 'tmp',
+                        encoding: 'ascii-8bit')
+    driver.save_screenshot file.path
+    file
+  end
+
+  def shot
+    begin
+      file = _get_shot
+    rescue StandardError => e
+      p e
+      $driver = nil
+      shot
+    end
+    # file = kit.to_file(Rails.root + 'public/pngs/' + 'screenshot.png')
+    send_file(file.path, filename: 'screenshot.png', type: 'image/png', disposition: 'attachment', streaming: 'true')
   end
 
   # GET /posts/new
@@ -23,8 +99,7 @@ class PostsController < ApplicationController
   end
 
   # GET /posts/1/edit
-  def edit
-  end
+  def edit; end
 
   # POST /posts
   # POST /posts.json
@@ -67,13 +142,14 @@ class PostsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_post
-      @post = Post.find(params[:id])
-    end
 
-    # Only allow a list of trusted parameters through.
-    def post_params
-      params.require(:post).permit(:title, :content, :author)
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_post
+    @post = Post.find(params[:id])
+  end
+
+  # Only allow a list of trusted parameters through.
+  def post_params
+    params.require(:post).permit(:title, :content, :author)
+  end
 end
