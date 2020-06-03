@@ -105,10 +105,10 @@ class PostsController < ApplicationController
   # POST /posts.json
   def create
     @post = Post.new(post_params)
-
+    @post.change_key = post_params[:change_key_virtual]
     respond_to do |format|
       if @post.save
-        format.html { redirect_to @post, notice: 'Post was successfully created.' }
+        format.html { redirect_to @post, notice: '作成完了' }
         format.json { render :show, status: :created, location: @post }
       else
         format.html { render :new }
@@ -120,9 +120,18 @@ class PostsController < ApplicationController
   # PATCH/PUT /posts/1
   # PATCH/PUT /posts/1.json
   def update
+    logger.warn(@post.inspect)
+    @post.change_key = post_params[:change_key_virtual] if @post.change_key.blank?
+    if post_params[:change_key_virtual] != @post.change_key
+      respond_to do |format|
+        format.html { redirect_to @post, notice: 'キーが一致しないから更新できぬ' }
+      end
+      return
+    end
+    @post.change_key = post_params[:change_key_virtual]
     respond_to do |format|
       if @post.update(post_params)
-        format.html { redirect_to @post, notice: 'Post was successfully updated.' }
+        format.html { redirect_to @post, notice: '更新完了' }
         format.json { render :show, status: :ok, location: @post }
       else
         format.html { render :edit }
@@ -136,7 +145,7 @@ class PostsController < ApplicationController
   def destroy
     @post.destroy
     respond_to do |format|
-      format.html { redirect_to posts_url, notice: 'Post was successfully destroyed.' }
+      format.html { redirect_to posts_url, notice: '削除完了' }
       format.json { head :no_content }
     end
   end
@@ -150,6 +159,6 @@ class PostsController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def post_params
-    params.require(:post).permit(:title, :content, :author)
+    params.require(:post).permit(:title, :content, :author, :change_key_virtual)
   end
 end
