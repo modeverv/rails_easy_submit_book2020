@@ -5,7 +5,10 @@
 <%= link_to '戻る', posts_path %><br/><br/>
 </div>
 <div>
-<h2><%= link_to "Twitterにぶん投げる処理をする", publish_path %></h2>
+<h2>
+<%= link_to "Twitter投下処理", publish_path %>
+</h2>
+<p>↑クリックしたら処理に10秒ぐらいかかる</p>
 </div>
 <% end %>
 <h1><%= @post.title %></h1>
