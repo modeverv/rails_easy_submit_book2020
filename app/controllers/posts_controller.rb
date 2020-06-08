@@ -7,13 +7,12 @@ class PostsController < ApplicationController
 
   def _get_driver
     return $driver unless $driver.blank?
-
-    puts 'generate google instance'
+    logger.info('generate google instance')
     Selenium::WebDriver::Chrome::Service.driver_path = ENV.fetch('DRIVER_PATH') { '/usr/local/bin/chromedriver' }
     options = Selenium::WebDriver::Chrome::Options.new
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
-    # options.add_argument('--disable-gpu')
+    options.add_argument('--disable-gpu')
     options.add_argument('--hide-scrollbars')
     options.binary = ENV.fetch('CHROME_BIN') { '/usr/bin/google-chrome' }
     $driver = Selenium::WebDriver.for :chrome, options: options
@@ -32,6 +31,7 @@ class PostsController < ApplicationController
 
   def publish
     temp_file = _get_shot
+    #temp_file = "#{Dir.pwd}/public/post_#{@post.id}.png"
     @media_urls = _send_to_twitter temp_file
   end
 
@@ -42,24 +42,77 @@ class PostsController < ApplicationController
       token: ENV.fetch('TOKEN'),
       token_secret: ENV.fetch('TOKEN_SECRET')
     )
-    image = File.open(temp_file.path, 'rb').read
-    res = t.media_upload('media' => image)
-    media_id = JSON.parse(res.body)['media_id_string']
+    image = Magick::Image.read(temp_file).first    
+    width = image.columns
+    height = image.rows
+    logger.info(height)
+    count = (height / 4000.0).round
+    count = (height / 1200.0).round
+    is_ommited = false
+    is_ommited = true if count > 4
+    count = 4 if count > 4
+    logger.info(count)
+    images = []
+    count.times do |i|
+      logger.info(i) # 0,1,2
+      height_start = 0 + (4000 * i)
+      height_start = 0 + (1200 * i)      
+      length = 1200
+      length = height - height_start if height_start + length > height
+      logger.info(height_start)
+      logger.info(length)
+      images << image.crop(0, height_start, width, length)
+    end
+    if is_ommited
+      _target_image = images.last
+      width = _target_image.columns
+      height = _target_image.rows
+      target_image = Magick::Image.new(width, height) do |image|
+        image.background_color= "Transparent"
+      end
+      font = "#{Dir.pwd}/public/ipaexg.ttf"
+      str = "続きはリンク先で！"
+      draw = Magick::Draw.new 
+      draw.annotate(target_image, 0, 0, 10, 10, str) do
+        self.font      = font                      # フォント
+        self.fill      = 'blue'                   # フォント塗りつぶし色(白)
+        self.stroke    = 'transparent'             # フォント縁取り色(透過)
+        self.pointsize = 64                        # フォントサイズ(16pt)
+        self.gravity   = Magick::SouthEastGravity  # 描画基準位置(右下)
+      end
+      target_image = _target_image.composite(target_image, 0, 0, Magick::OverCompositeOp)
+      images[images.size - 1] = target_image
+    end
+    response = []
+    temp_files = []
+    images.each_with_index do |image, i|
+      file = Tempfile.new(["tempfile_#{@post.id}_#{i}", '.png'], 'tmp',
+      encoding: 'ascii-8bit')
+      image.write(file.path)
+      #image.write("#{Dir.pwd}/public/post_#{@post.id}_#{i}.png")
+      temp_files << file
+      #temp_files << "#{Dir.pwd}/public/post_#{@post.id}_#{i}.png"
+    end
+    media_ids = []
+    temp_files.each do |temp_file|
+      image = File.open(temp_file.path, 'rb').read
+      #image = File.open(temp_file, 'rb').read
+      res = t.media_upload('media' => image)
+      logger.info(res.body)
+      media_ids << JSON.parse(res.body)['media_id_string']
+    end
     res = t.statuses_update(
-      'status' => '',
-      'media_ids' => media_id
+      'status' => '#Twitter小説書きの支援ツール',
+      'media_ids' => media_ids.join(",")
     )
+    logger.info(res.body)
     status_id = JSON.parse(res.body)['id_str']
     res = t.statuses_show_id('id' => status_id)
     tweet = JSON.parse(res.body)
-    url = ''
-    display_url = ''
     tweet['extended_entities']['media'].each do |media|
-      url = media['media_url']
-      display_url = media['display_url']
-      break
+      response << [media['media_url'],media['display_url']]
     end
-    [url, display_url]
+    response
   end
 
   def view
@@ -74,23 +127,27 @@ class PostsController < ApplicationController
     height = driver.execute_script('return document.body.scrollHeight + 300')
     driver.manage.window.resize_to(width, height)
     driver.manage.window.maximize
-    sleep 5 # required waiting for page loading
-    file = Tempfile.new(["template_#{@post.id}", '.png'], 'tmp',
-                        encoding: 'ascii-8bit')
+    sleep 10 # required waiting for page loading
+    file = Tempfile.new(["tempfile_#{@post.id}", '.png'], 'tmp',
+      encoding: 'ascii-8bit')
+    #file = File.new();
+    #driver.save_screenshot "#{Dir.pwd}/public/post_#{@post.id}.png"
     driver.save_screenshot file.path
-    file
+    #logger.info(File.size("#{Dir.pwd}/public/s#{@post.id}.png"))
+    logger.info(File.size(file.path))
+    file.path
   end
 
   def shot
     begin
       file = _get_shot
     rescue StandardError => e
-      p e
+      logger.warn(e)
       $driver = nil
       shot
     end
     # file = kit.to_file(Rails.root + 'public/pngs/' + 'screenshot.png')
-    send_file(file.path, filename: 'screenshot.png', type: 'image/png', disposition: 'attachment', streaming: 'true')
+    send_file(file, filename: 'screenshot.png', type: 'image/png', disposition: 'attachment', streaming: 'true')
   end
 
   # GET /posts/new
