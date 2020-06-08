@@ -127,7 +127,7 @@ class PostsController < ApplicationController
     height = driver.execute_script('return document.body.scrollHeight + 300')
     driver.manage.window.resize_to(width, height)
     driver.manage.window.maximize
-    sleep 10 # required waiting for page loading
+    sleep 20 # required waiting for page loading
     file = Tempfile.new(["tempfile_#{@post.id}", '.png'], 'tmp',
       encoding: 'ascii-8bit')
     #file = File.new();
