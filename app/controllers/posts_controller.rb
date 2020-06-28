@@ -36,6 +36,7 @@ class PostsController < ApplicationController
   end
 
   def _send_to_twitter(temp_file)
+    logger.warn("in")
     t = TwitterAPI::Client.new(
       consumer_key: ENV.fetch('CONSUMER_KEY'),
       consumer_secret: ENV.fetch('CONSUMER_SECRET'),
@@ -45,13 +46,13 @@ class PostsController < ApplicationController
     image = Magick::Image.read(temp_file).first    
     width = image.columns
     height = image.rows
-    logger.info(height)
-    count = (height / 4000.0).round
-    count = (height / 1200.0).round
+    logger.warn(height)
+    # count = (height / 4000.0).ceil
+    count = (height / 1200.0).ceil
     is_ommited = false
     is_ommited = true if count > 4
     count = 4 if count > 4
-    logger.info(count)
+    logger.warn(count)
     images = []
     count.times do |i|
       logger.info(i) # 0,1,2
@@ -98,14 +99,15 @@ class PostsController < ApplicationController
       image = File.open(temp_file.path, 'rb').read
       #image = File.open(temp_file, 'rb').read
       res = t.media_upload('media' => image)
-      logger.info(res.body)
+      logger.warn("upload!")
+      logger.warn(res.body)
       media_ids << JSON.parse(res.body)['media_id_string']
     end
     res = t.statuses_update(
-      'status' => '#Twitter小説書きの支援ツール',
+      'status' => '#Twitter小説書きの支援ツール ' + DateTime.now.strftime('%Q').to_i.to_s,
       'media_ids' => media_ids.join(",")
     )
-    logger.info(res.body)
+    logger.warn(res.body)
     status_id = JSON.parse(res.body)['id_str']
     res = t.statuses_show_id('id' => status_id)
     tweet = JSON.parse(res.body)
