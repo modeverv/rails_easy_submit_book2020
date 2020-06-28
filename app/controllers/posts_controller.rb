@@ -48,7 +48,7 @@ class PostsController < ApplicationController
     height = image.rows
     logger.warn(height)
     # count = (height / 4000.0).ceil
-    count = (height / 1200.0).ceil
+    count = (height / 1200.0).floor + 1
     is_ommited = false
     is_ommited = true if count > 4
     count = 4 if count > 4
