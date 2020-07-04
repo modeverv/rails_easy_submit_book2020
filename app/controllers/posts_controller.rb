@@ -14,6 +14,7 @@ class PostsController < ApplicationController
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--hide-scrollbars')
+    #options.add_argument('--window-size=494,1199') # 漫画のツイート参考にしたけどあんまり良くなかった。
     options.binary = ENV.fetch('CHROME_BIN') { '/usr/bin/google-chrome' }
     $driver = Selenium::WebDriver.for :chrome, options: options
     $driver
