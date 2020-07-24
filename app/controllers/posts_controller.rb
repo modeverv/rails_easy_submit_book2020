@@ -14,7 +14,8 @@ class PostsController < ApplicationController
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-gpu')
     options.add_argument('--hide-scrollbars')
-    #options.add_argument('--window-size=494,1199') # 漫画のツイート参考にしたけどあんまり良くなかった。
+    #options.add_argument('--window-size=734,1200') 
+    options.add_argument('--window-size=1024,1200') 
     options.binary = ENV.fetch('CHROME_BIN') { '/usr/bin/google-chrome' }
     $driver = Selenium::WebDriver.for :chrome, options: options
     $driver
@@ -131,14 +132,15 @@ class PostsController < ApplicationController
     driver.manage.window.resize_to(width, height)
     driver.manage.window.maximize
     sleep 20 # required waiting for page loading
-    file = Tempfile.new(["tempfile_#{@post.id}", '.png'], 'tmp',
-      encoding: 'ascii-8bit')
-    #file = File.new();
-    #driver.save_screenshot "#{Dir.pwd}/public/post_#{@post.id}.png"
-    driver.save_screenshot file.path
-    #logger.info(File.size("#{Dir.pwd}/public/s#{@post.id}.png"))
-    logger.info(File.size(file.path))
-    file.path
+    #file = Tempfile.new(["tempfile_#{@post.id}", '.png'], 'tmp',
+    #  encoding: 'ascii-8bit')
+    path = "#{Dir.pwd}/public/post_#{@post.id}.png"
+    driver.save_screenshot path
+    #driver.save_screenshot file.path
+    # logger.info(File.size("#{Dir.pwd}/public/s#{@post.id}.png"))
+    # logger.info(File.size(file.path))
+    #file.path
+    path
   end
 
   def shot
